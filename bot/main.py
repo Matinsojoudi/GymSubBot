@@ -1042,6 +1042,69 @@ def increment_download_count(tracking_code):
         return None
     
 
+def ask_weight(chat_id, height_message):
+    try:
+        height = float(height_message.text)
+        if height < 50 or height > 300:
+            raise ValueError
+        msg_box2 = bot.send_message(
+            chat_id,
+            "⚖️ لطفاً وزن خود را به کیلوگرم وارد کنید (مثلاً ۷۰):",
+            reply_markup=back_markup
+        )
+        bot.register_next_step_handler(msg_box2, lambda weight_message: calculate_bmi_with_data(chat_id, height, weight_message))
+    except ValueError:
+        if height_message.text == "برگشت 🔙":
+            bot.send_message(chat_id, "به منوی اصلی برگشتید.", reply_markup=main_markup)
+        else:
+            msg = bot.send_message(
+                chat_id,
+                "❌ لطفاً قد خود را به صورت عددی و به سانتی‌متر وارد کنید (مثلاً ۱۷۵).",
+                reply_markup=back_markup
+            )
+            bot.register_next_step_handler(msg, lambda m: ask_weight(chat_id, m))
+
+def calculate_bmi_with_data(chat_id, height, weight_message):
+    try:
+        weight = float(weight_message.text)
+        if weight < 20 or weight > 400:
+            raise ValueError
+        height_m = height / 100.0
+        bmi = weight / (height_m ** 2)
+        if bmi < 16:
+            status = "کمبود وزن شدید 😟"
+        elif bmi < 18.5:
+            status = "کمبود وزن 🟡"
+        elif bmi < 25:
+            status = "وزن نرمال ✅"
+        elif bmi < 30:
+            status = "اضافه وزن 🟠"
+        elif bmi < 35:
+            status = "چاقی درجه ۱ 🔴"
+        elif bmi < 40:
+            status = "چاقی درجه ۲ 🔴"
+        else:
+            status = "چاقی شدید 🚨"
+        bot.send_message(
+            chat_id,
+            f"🔢 <b>BMI شما:</b> <code>{bmi:.2f}</code>\n"
+            f"وضعیت: <b>{status}</b>\n\n"
+            "برای محاسبه مجدد، دوباره گزینه محاسبه BMI را انتخاب کنید.",
+            parse_mode="HTML",
+            reply_markup=main_markup
+        )
+    except ValueError:
+        if weight_message.text == "برگشت 🔙":
+            bot.send_message(chat_id, "به منوی اصلی برگشتید.", reply_markup=main_markup)
+        else:
+            msg = bot.send_message(
+                chat_id,
+                "❌ لطفاً وزن خود را به صورت عددی و به کیلوگرم وارد کنید (مثلاً ۷۰).",
+                reply_markup=back_markup
+            )
+            bot.register_next_step_handler(msg, lambda m: calculate_bmi_with_data(chat_id, height, m))
+            
+            
 @bot.message_handler(commands=['start'])
 def handle_start(message):
     must_join_keyboard = make_channel_id_keyboard()
@@ -1274,6 +1337,17 @@ def request_file(message):
         bot.reply_to(message, "فایل مورد نظر خود را جهت تبدیل به لینک ارسال کنید:", reply_markup=back_markup)
         bot.register_next_step_handler(message, handle_file)
         
+@bot.message_handler(func=lambda message: message.text == "⚖️ محاسبه BMI")
+def ask_height(message):
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.row("برگشت 🔙")
+    msg_box1 = bot.send_message(
+        message.chat.id,
+        "📏 لطفاً قد خود را به سانتی‌متر وارد کنید (مثلاً ۱۷۵):",
+        reply_markup=markup
+    )
+    bot.register_next_step_handler(msg_box1, lambda height_message: ask_weight(message.chat.id, height_message))
+    
         
 @bot.message_handler(func=lambda message: message.chat.type == 'private', 
                      content_types=['text','audio', 'document', 'photo', 'sticker', 

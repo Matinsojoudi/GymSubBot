@@ -1,0 +1,5 @@
+1404-03-10 16:24:51 - ERROR - Traceback (most recent call last):
+  File "E:\Telbot Land\GymSubBot\bot\main.py", line 860, in make_channel_id_keyboard
+    c.execute("SELECT button_name, link FROM channels ORDER BY id DESC LIMIT 10")
+sqlite3.OperationalError: no such table: channels
+
